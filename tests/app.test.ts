@@ -118,6 +118,34 @@ describe("glassview worker", () => {
     expect(await response.json()).toMatchObject({ error: "invalid_cipher_metadata" });
   });
 
+  it("omits plaintext convenience metadata for encrypted uploads", async () => {
+    const uploaded = await uploadEncrypted(
+      "&label=Secret%20dashboard&sourceUrl=https%3A%2F%2Flocalhost%3A5173%2Fadmin&appName=Browser&viewport=1440x900&note=token%3Dsecret",
+    );
+    const metaObject = await bucket.get(`meta/${uploaded.id}.json`);
+    const meta = await metaObject?.json<{
+      label?: string;
+      sourceUrl?: string;
+      appName?: string;
+      viewport?: string;
+      note?: string;
+    }>();
+
+    expect(meta?.label).toBeUndefined();
+    expect(meta?.sourceUrl).toBeUndefined();
+    expect(meta?.appName).toBeUndefined();
+    expect(meta?.viewport).toBeUndefined();
+    expect(meta?.note).toBeUndefined();
+
+    const viewer = await handleRequest(new Request(uploaded.viewUrl), env);
+    const html = await viewer.text();
+    expect(html).toContain("<title>Glassview proof</title>");
+    expect(html).toContain("<h1>Glassview proof</h1>");
+    expect(html).not.toContain("Secret dashboard");
+    expect(html).not.toContain("localhost");
+    expect(html).not.toContain("token=secret");
+  });
+
   it("stores custom ttl metadata for uploads", async () => {
     const uploaded = (await (await upload("ttl=24h")).json()) as UploadResponse;
     const metaObject = await bucket.get(`meta/${uploaded.id}.json`);
@@ -227,12 +255,42 @@ describe("glassview worker", () => {
     expect(raw.headers.get("content-type")).toBe("image/png");
   });
 
-  it("redirects latest to the newest screenshot", async () => {
+  it("does not expose latest publicly by default", async () => {
+    const uploaded = (await (await upload()).json()) as UploadResponse;
+    const response = await handleRequest(new Request("https://glassview.test/latest"), env);
+
+    expect(response.status).toBe(401);
+
+    const authorized = await handleRequest(
+      new Request("https://glassview.test/latest", {
+        headers: { authorization: "Bearer test-token" },
+      }),
+      env,
+    );
+
+    expect(authorized.status).toBe(302);
+    expect(authorized.headers.get("location")).toBe(uploaded.viewUrl);
+  });
+
+  it("allows public latest only when explicitly enabled", async () => {
+    env.GLASSVIEW_ENABLE_LATEST = "true";
     const uploaded = (await (await upload()).json()) as UploadResponse;
     const response = await handleRequest(new Request("https://glassview.test/latest"), env);
 
     expect(response.status).toBe(302);
     expect(response.headers.get("location")).toBe(uploaded.viewUrl);
+  });
+
+  it("hides latest from the home page unless latest is explicitly enabled", async () => {
+    const uploaded = (await (await upload()).json()) as UploadResponse;
+    const hidden = await handleRequest(new Request("https://glassview.test/"), env);
+
+    expect(await hidden.text()).not.toContain(uploaded.viewUrl);
+
+    env.GLASSVIEW_ENABLE_LATEST = "true";
+    const visible = await handleRequest(new Request("https://glassview.test/"), env);
+
+    expect(await visible.text()).toContain(uploaded.viewUrl);
   });
 
   it("returns 415 for non-image uploads", async () => {
@@ -286,10 +344,10 @@ describe("glassview worker", () => {
     );
   }
 
-  async function uploadEncrypted(): Promise<UploadResponse> {
+  async function uploadEncrypted(querySuffix = ""): Promise<UploadResponse> {
     const response = await handleRequest(
       new Request(
-        "https://glassview.test/api/screenshots?mode=encrypted&contentType=image/png&cipherAlg=AES-GCM&iv=test-iv",
+        `https://glassview.test/api/screenshots?mode=encrypted&contentType=image/png&cipherAlg=AES-GCM&iv=test-iv${querySuffix}`,
         {
           method: "POST",
           body: Uint8Array.from([0x01, 0x02, 0x03, 0x04, 0x05]),

@@ -48,6 +48,6 @@ node skills/glassview/scripts/capture-url.mjs http://localhost:5173/ "Local app"
 
 A successful proof has:
 
-- `POST /api/screenshots` returned JSON with `id`, `viewUrl`, and `rawUrl`.
+- `POST /api/screenshots` returned JSON with `id`, `viewUrl`, and either encrypted `blobUrl` or explicit public `rawUrl`.
 - `GET <viewUrl>` returns `200 OK` and an HTML viewer.
 - The final answer includes the shareable `viewUrl`.

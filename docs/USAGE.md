@@ -61,7 +61,7 @@ Use `--public` only for screenshots that are safe to store and share as public-b
 A valid Glassview proof has all of these:
 
 - a real PNG, JPEG, WebP, GIF, or SVG file was uploaded
-- `POST /api/screenshots` returned `id`, `viewUrl`, and `rawUrl`
+- `POST /api/screenshots` returned `id`, `viewUrl`, and either encrypted `blobUrl` or explicit public `rawUrl`
 - the returned `viewUrl` was checked and returned `200 OK`
 - the final answer includes the shareable `viewUrl`
 

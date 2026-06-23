@@ -49,12 +49,12 @@ function renderPrivateViewer(meta: ScreenshotMetadata): string {
   const blobUrl = meta.blobUrl || "";
   const iv = meta.cipher?.iv || "";
 
-  return page(`Glassview ${meta.id}`, `
+  return page("Glassview proof", `
     <main class="viewer">
       <header>
         <div>
           <p class="eyebrow">Glassview</p>
-          <h1>${escapeHtml(meta.label || meta.id)}</h1>
+          <h1>Glassview proof</h1>
         </div>
         <a class="button" data-download hidden>Download</a>
       </header>

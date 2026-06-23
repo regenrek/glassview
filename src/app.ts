@@ -31,7 +31,8 @@ export async function handleRequest(request: Request, env: GlassviewEnv): Promis
   const headOnly = request.method === "HEAD";
 
   if (isRead && pathname === "/") {
-    const latest = await getLatest(env);
+    const config = resolveRuntimeConfig(env);
+    const latest = config.latestEnabled ? await getLatest(env) : undefined;
     return html(headOnly ? "" : renderHome(latest));
   }
 
@@ -44,6 +45,11 @@ export async function handleRequest(request: Request, env: GlassviewEnv): Promis
   }
 
   if (isRead && pathname === "/latest") {
+    const config = resolveRuntimeConfig(env);
+    if (!config.latestEnabled) {
+      const unauthorized = authorize(request, env);
+      if (unauthorized) return unauthorized;
+    }
     const latest = await getLatest(env);
     if (!latest) return html(headOnly ? "" : renderHome(), 404);
     return Response.redirect(new URL(latest.viewUrl, request.url).toString(), 302);
@@ -167,11 +173,11 @@ async function uploadScreenshot(request: Request, env: GlassviewEnv): Promise<Re
   const meta: ScreenshotMetadata = {
     id,
     mode,
-    label: input.label,
-    sourceUrl: input.sourceUrl,
-    appName: input.appName,
-    viewport: input.viewport,
-    note: input.note,
+    label: mode === "public" ? input.label : undefined,
+    sourceUrl: mode === "public" ? input.sourceUrl : undefined,
+    appName: mode === "public" ? input.appName : undefined,
+    viewport: mode === "public" ? input.viewport : undefined,
+    note: mode === "public" ? input.note : undefined,
     imageKey,
     metaKey,
     contentType: imageContentType,
