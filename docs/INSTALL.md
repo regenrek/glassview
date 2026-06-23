@@ -4,16 +4,16 @@ Glassview is most useful when the skill is installed in your agent and pointed a
 
 ## Install With Agent Skills
 
-Codex:
+Install project-locally:
 
 ```bash
-npx skills add regenrek/glassview --skill glassview --agent codex -g
+npx skills add regenrek/glassview --skill glassview
 ```
 
-Claude Code:
+Install globally for your user-level agent environment:
 
 ```bash
-npx skills add regenrek/glassview --skill glassview --agent claude-code -g
+npx skills add regenrek/glassview --skill glassview -g
 ```
 
 List available skills in the repo:
@@ -22,9 +22,9 @@ List available skills in the repo:
 npx skills add regenrek/glassview --list
 ```
 
-Use `-g` for a global install. Omit it for a project-local install. Add `--copy` if you prefer copied files instead of symlinks.
+Use `-g` for a global install. Omit it for a project-local install. Add `--agent <agent>` only when you want to target a specific supported agent, such as `openclaw`, `hermes-agent`, `codex`, or `claude-code`. Add `--copy` if you prefer copied files instead of symlinks.
 
-## Clone-Based Install
+## Codex Clone-Based Install
 
 ```bash
 git clone https://github.com/regenrek/glassview.git

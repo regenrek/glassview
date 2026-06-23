@@ -20,12 +20,12 @@ agent captures screenshot -> Glassview upload -> verified browser URL -> share t
 Install the skill with the open Agent Skills CLI:
 
 ```bash
-npx skills add regenrek/glassview --skill glassview --agent codex -g
+npx skills add regenrek/glassview --skill glassview
 ```
 
-Use `--agent claude-code` for Claude Code, or omit `-g` for a project-local install.
+Add `-g` for a global/user-level install. Add `--agent <agent>` only when you want to target a specific supported agent, such as `openclaw`, `hermes-agent`, `codex`, or `claude-code`.
 
-Clone-based fallback:
+Codex-only clone-based fallback for local development:
 
 ```bash
 git clone https://github.com/regenrek/glassview.git
