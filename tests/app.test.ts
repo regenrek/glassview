@@ -95,6 +95,9 @@ describe("glassview worker", () => {
     const blob = await handleRequest(new Request(body.blobUrl!), env);
     expect(blob.status).toBe(200);
     expect(blob.headers.get("content-type")).toBe("application/octet-stream");
+    expect(blob.headers.get("cache-control")).toBe("no-store");
+    expect(blob.headers.get("x-robots-tag")).toBe("noindex, nofollow, noarchive");
+    expect(blob.headers.get("referrer-policy")).toBe("no-referrer");
     expect(new Uint8Array(await blob.arrayBuffer())).toEqual(ciphertext);
 
     const raw = await handleRequest(new Request(`https://glassview.test/raw/${body.id}`), env);
@@ -182,6 +185,21 @@ describe("glassview worker", () => {
     expect(html).toContain("Could not decrypt screenshot.");
     expect(html).toContain("data-download hidden");
     expect(html).not.toContain(`<img src="${uploaded.blobUrl}"`);
+  });
+
+  it("sets anti-indexing and leak-reduction headers on private viewer responses", async () => {
+    const uploaded = await uploadEncrypted();
+    const response = await handleRequest(new Request(uploaded.viewUrl), env);
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("x-robots-tag")).toBe("noindex, nofollow, noarchive");
+    expect(response.headers.get("referrer-policy")).toBe("no-referrer");
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(response.headers.get("content-security-policy")).toContain("default-src 'none'");
+    expect(response.headers.get("content-security-policy")).toContain("frame-ancestors 'none'");
+    expect(await response.text()).toContain(
+      '<meta name="robots" content="noindex,nofollow,noarchive" />',
+    );
   });
 
   it("returns the raw image with the uploaded content type", async () => {

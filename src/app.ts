@@ -6,6 +6,14 @@ const JSON_HEADERS = {
   "content-type": "application/json; charset=utf-8",
 };
 
+const VIEWER_SECURITY_HEADERS = {
+  "x-robots-tag": "noindex, nofollow, noarchive",
+  "referrer-policy": "no-referrer",
+  "cache-control": "no-store",
+  "content-security-policy":
+    "default-src 'none'; img-src 'self' blob: data:; connect-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
+};
+
 const LATEST_KEY = "latest.json";
 const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 
@@ -75,7 +83,7 @@ export async function handleRequest(request: Request, env: GlassviewEnv): Promis
     if (!meta) return text("Screenshot not found", 404);
     const unavailable = unavailableResponse(meta);
     if (unavailable) return unavailable;
-    return html(headOnly ? "" : renderViewer(meta));
+    return html(headOnly ? "" : renderViewer(meta), 200, VIEWER_SECURITY_HEADERS);
   }
 
   const rawMatch = pathname.match(/^\/raw\/([A-Za-z0-9_-]+)$/);
@@ -111,7 +119,9 @@ export async function handleRequest(request: Request, env: GlassviewEnv): Promis
     return new Response(headOnly ? null : object.body, {
       headers: {
         "content-type": "application/octet-stream",
-        "cache-control": "private, max-age=3600",
+        "cache-control": "no-store",
+        "x-robots-tag": "noindex, nofollow, noarchive",
+        "referrer-policy": "no-referrer",
       },
     });
   }
@@ -354,10 +364,10 @@ function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
-function html(body: string, status = 200): Response {
+function html(body: string, status = 200, headers: HeadersInit = {}): Response {
   return new Response(body, {
     status,
-    headers: { "content-type": "text/html; charset=utf-8" },
+    headers: { "content-type": "text/html; charset=utf-8", ...headers },
   });
 }
 
