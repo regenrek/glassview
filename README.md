@@ -86,6 +86,7 @@ More prompts and direct CLI commands: [Usage Guide](docs/USAGE.md).
 - [API](docs/API.md)
 - [Security](docs/SECURITY.md)
 - [Testing](docs/TESTING.md)
+- [Changelog](CHANGELOG.md)
 
 ## License
 
