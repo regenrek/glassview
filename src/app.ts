@@ -1,4 +1,5 @@
 import { renderHome, renderViewer } from "./html";
+import { parseDuration, resolveRuntimeConfig, ttlToExpiresAt } from "./config";
 import type { GlassviewEnv, ScreenshotMetadata, UploadResponse } from "./types";
 
 const JSON_HEADERS = {
@@ -16,6 +17,7 @@ type UploadInput = {
   appName?: string;
   viewport?: string;
   note?: string;
+  ttl?: string;
 };
 
 export async function handleRequest(request: Request, env: GlassviewEnv): Promise<Response> {
@@ -79,6 +81,16 @@ async function uploadScreenshot(request: Request, env: GlassviewEnv): Promise<Re
   }
 
   const input = await readUploadInput(request);
+  const config = resolveRuntimeConfig(env);
+  let ttlSeconds: number;
+  try {
+    ttlSeconds = input.ttl
+      ? parseDuration(input.ttl, { maxSeconds: config.maxTtlSeconds, name: "ttl" })
+      : config.defaultTtlSeconds;
+  } catch (error) {
+    return json({ error: "invalid_ttl", message: errorMessage(error) }, 400);
+  }
+
   if (!input.contentType.startsWith("image/")) {
     return json({ error: "unsupported_media_type" }, 415);
   }
@@ -91,6 +103,7 @@ async function uploadScreenshot(request: Request, env: GlassviewEnv): Promise<Re
 
   const id = createId();
   const createdAt = new Date().toISOString();
+  const expiresAt = ttlToExpiresAt(createdAt, ttlSeconds);
   const ext = extensionForContentType(input.contentType);
   const datePrefix = createdAt.slice(0, 10).replaceAll("-", "/");
   const imageKey = `screenshots/${datePrefix}/${id}.${ext}`;
@@ -109,6 +122,7 @@ async function uploadScreenshot(request: Request, env: GlassviewEnv): Promise<Re
     contentType: input.contentType,
     size: input.bytes.byteLength,
     createdAt,
+    expiresAt,
     viewUrl: `${baseUrl}/v/${id}`,
     rawUrl: `${baseUrl}/raw/${id}`,
   };
@@ -154,6 +168,7 @@ async function readUploadInput(request: Request): Promise<UploadInput> {
       appName: stringField(form, "appName"),
       viewport: stringField(form, "viewport"),
       note: stringField(form, "note"),
+      ttl: stringField(form, "ttl"),
     };
   }
 
@@ -165,6 +180,7 @@ async function readUploadInput(request: Request): Promise<UploadInput> {
     appName: url.searchParams.get("appName") || undefined,
     viewport: url.searchParams.get("viewport") || undefined,
     note: url.searchParams.get("note") || undefined,
+    ttl: url.searchParams.get("ttl") || undefined,
   };
 }
 
@@ -210,6 +226,10 @@ function createId(): string {
   const bytes = new Uint8Array(16);
   crypto.getRandomValues(bytes);
   return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
 }
 
 function html(body: string, status = 200): Response {

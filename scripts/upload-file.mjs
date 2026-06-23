@@ -1,13 +1,18 @@
 #!/usr/bin/env node
 import { readFile, stat } from "node:fs/promises";
 import { basename } from "node:path";
+import { applyShareOptions, parseShareOptions } from "./lib/share-options.mjs";
 
-const file = process.argv[2];
-
-if (!file) {
-  console.error("Usage: node scripts/upload-file.mjs <image-file> [label]");
+let parsed;
+try {
+  parsed = parseShareOptions(process.argv.slice(2), { targetName: "image-file" });
+} catch (error) {
+  console.error(error instanceof Error ? error.message : String(error));
+  console.error("Usage: node scripts/upload-file.mjs <image-file> [label] [--ttl 24h] [--public]");
   process.exit(2);
 }
+
+const file = parsed.target;
 
 const baseUrl = process.env.GLASSVIEW_URL || process.env.GLASSVIEW_LOCAL_URL;
 const token = process.env.GLASSVIEW_UPLOAD_TOKEN;
@@ -29,9 +34,9 @@ if (!info.isFile()) {
 }
 
 const bytes = await readFile(file);
-const label = process.argv[3] || basename(file);
+const label = parsed.label || basename(file);
 const url = new URL("/api/screenshots", baseUrl);
-url.searchParams.set("label", label);
+applyShareOptions(url, { ...parsed, label });
 
 const response = await fetch(url, {
   method: "POST",

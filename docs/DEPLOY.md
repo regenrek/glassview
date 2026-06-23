@@ -46,6 +46,11 @@ pnpm deploy
 - `GLASSVIEW_BUCKET_NAME`: R2 bucket name.
 - `GLASSVIEW_USE_EXISTING_R2`: set `true` to bind an existing bucket instead of letting Alchemy create one.
 - `GLASSVIEW_ENABLE_WORKERS_DEV`: set `false` to disable the generated Worker URL.
+- `GLASSVIEW_SHARE_MODE`: default share mode, currently `private`, `public`, or `team`.
+- `GLASSVIEW_DEFAULT_TTL`: default link lifetime, such as `7d`.
+- `GLASSVIEW_MAX_TTL`: maximum accepted link lifetime, such as `30d`.
+- `GLASSVIEW_ENABLE_LATEST`: set `true` only when `/latest` should be publicly available.
+- `GLASSVIEW_ENCRYPT_UPLOADS`: set `true` for private encrypted uploads.
 - `STAGE`: Alchemy stage, defaults to `dev`.
 
 When Alchemy creates the bucket, screenshots and metadata are configured with a 14-day lifecycle. If `GLASSVIEW_USE_EXISTING_R2=true`, configure lifecycle rules on that existing bucket yourself.

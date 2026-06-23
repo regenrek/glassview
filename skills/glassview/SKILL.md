@@ -22,8 +22,8 @@ Do not claim Glassview proof from an accessibility tree, DOM snapshot, or text o
 
 ## Capture Choices
 
-- For browser pages or localhost apps, prefer `scripts/capture-url.mjs <url> [label]`.
-- For an existing local image file, use `scripts/upload-file.mjs <image-file> [label]`.
+- For browser pages or localhost apps, prefer `scripts/capture-url.mjs <url> [label] [--ttl 24h]`.
+- For an existing local image file, use `scripts/upload-file.mjs <image-file> [label] [--ttl 24h]`.
 - For desktop screenshots, first save the screenshot as PNG, JPEG, WebP, GIF, or SVG, then upload that file.
 
 ## Commands
@@ -33,7 +33,7 @@ From a clone of the Glassview repo:
 ```bash
 GLASSVIEW_URL=https://your-worker.your-subdomain.workers.dev \
 GLASSVIEW_UPLOAD_TOKEN=... \
-node skills/glassview/scripts/upload-file.mjs /path/to/screenshot.png "Browser proof"
+node skills/glassview/scripts/upload-file.mjs /path/to/screenshot.png "Browser proof" --ttl 24h
 ```
 
 For localhost/browser capture:
@@ -41,7 +41,7 @@ For localhost/browser capture:
 ```bash
 GLASSVIEW_URL=https://your-worker.your-subdomain.workers.dev \
 GLASSVIEW_UPLOAD_TOKEN=... \
-node skills/glassview/scripts/capture-url.mjs http://localhost:5173/ "Local app"
+node skills/glassview/scripts/capture-url.mjs http://localhost:5173/ "Local app" --ttl 24h
 ```
 
 ## Verification

@@ -33,7 +33,7 @@ Upload an image:
 ```bash
 GLASSVIEW_URL=https://your-glassview-worker.example \
 GLASSVIEW_UPLOAD_TOKEN=your-upload-token \
-pnpm upload /path/to/screenshot.png "Browser proof"
+pnpm upload /path/to/screenshot.png "Browser proof" --ttl 24h
 ```
 
 Capture a URL with Playwright and upload the screenshot:
@@ -41,7 +41,7 @@ Capture a URL with Playwright and upload the screenshot:
 ```bash
 GLASSVIEW_URL=https://your-glassview-worker.example \
 GLASSVIEW_UPLOAD_TOKEN=your-upload-token \
-pnpm capture:url http://localhost:5173/ "Local app"
+pnpm capture:url http://localhost:5173/ "Local app" --ttl 24h
 ```
 
 Local backend:
@@ -52,6 +52,9 @@ GLASSVIEW_LOCAL_URL=http://localhost:8787 \
 GLASSVIEW_UPLOAD_TOKEN=your-upload-token \
 pnpm upload ./example.png "Local proof"
 ```
+
+TTL values use `m`, `h`, or `d`, for example `30m`, `1h`, `24h`, or `7d`.
+Use `--public` only for screenshots that are safe to store and share as public-by-link plaintext.
 
 ## What Counts As Proof
 

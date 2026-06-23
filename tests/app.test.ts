@@ -42,6 +42,21 @@ describe("glassview worker", () => {
     expect(body.viewUrl).toBe(`https://glassview.test/v/${body.id}`);
     expect(body.rawUrl).toBe(`https://glassview.test/raw/${body.id}`);
     expect(bucket.objects.has(`meta/${body.id}.json`)).toBe(true);
+
+    const metaObject = await bucket.get(`meta/${body.id}.json`);
+    const meta = await metaObject?.json<{ expiresAt?: string }>();
+    expect(meta?.expiresAt).toBeDefined();
+  });
+
+  it("stores custom ttl metadata for uploads", async () => {
+    const uploaded = (await (await upload("ttl=24h")).json()) as UploadResponse;
+    const metaObject = await bucket.get(`meta/${uploaded.id}.json`);
+    const meta = await metaObject?.json<{ createdAt: string; expiresAt: string }>();
+
+    expect(meta).toBeDefined();
+    expect(new Date(meta!.expiresAt).getTime() - new Date(meta!.createdAt).getTime()).toBe(
+      24 * 60 * 60 * 1000,
+    );
   });
 
   it("renders the viewer page for an uploaded screenshot", async () => {
@@ -100,6 +115,13 @@ describe("glassview worker", () => {
     expect(response.status).toBe(415);
   });
 
+  it("returns 400 for invalid ttl uploads", async () => {
+    const response = await upload("ttl=forever");
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toMatchObject({ error: "invalid_ttl" });
+  });
+
   it("does not log a favicon 404 in browsers", async () => {
     const response = await handleRequest(new Request("https://glassview.test/favicon.ico"), env);
 
@@ -113,9 +135,9 @@ describe("glassview worker", () => {
     expect(await response.json()).toEqual({ ok: true, stage: "unknown" });
   });
 
-  async function upload(): Promise<Response> {
+  async function upload(query = "label=Example%20screenshot"): Promise<Response> {
     return handleRequest(
-      new Request("https://glassview.test/api/screenshots?label=Example%20screenshot", {
+      new Request(`https://glassview.test/api/screenshots?${query}`, {
         method: "POST",
         body: PNG_BYTES,
         headers: {

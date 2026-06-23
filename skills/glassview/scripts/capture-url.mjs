@@ -4,14 +4,19 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { spawnSync } from "node:child_process";
 import { chromium } from "@playwright/test";
+import { parseShareOptions, shareOptionsToArgs } from "./lib/share-options.mjs";
 
-const targetUrl = process.argv[2];
-const label = process.argv[3] || targetUrl;
-
-if (!targetUrl) {
-  console.error("Usage: node capture-url.mjs <url> [label]");
+let parsed;
+try {
+  parsed = parseShareOptions(process.argv.slice(2), { targetName: "url" });
+} catch (error) {
+  console.error(error instanceof Error ? error.message : String(error));
+  console.error("Usage: node capture-url.mjs <url> [label] [--ttl 24h] [--public]");
   process.exit(2);
 }
+
+const targetUrl = parsed.target;
+const label = parsed.label || targetUrl;
 
 const dir = await mkdtemp(join(tmpdir(), "glassview-"));
 await mkdir(dir, { recursive: true });
@@ -28,7 +33,11 @@ try {
 
 const result = spawnSync(
   process.execPath,
-  [new URL("./upload-file.mjs", import.meta.url).pathname, screenshotPath, label],
+  [
+    new URL("./upload-file.mjs", import.meta.url).pathname,
+    screenshotPath,
+    ...shareOptionsToArgs({ ...parsed, label }),
+  ],
   { stdio: "inherit", env: process.env },
 );
 
