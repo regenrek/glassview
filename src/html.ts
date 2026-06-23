@@ -22,18 +22,10 @@ export function renderHome(latest?: ScreenshotMetadata): string {
 }
 
 export function renderViewer(meta: ScreenshotMetadata): string {
+  if (meta.mode === "encrypted") return renderPrivateViewer(meta);
+
   const assetUrl = meta.rawUrl || meta.blobUrl || "#";
-  const buttonLabel = meta.mode === "encrypted" ? "Open blob" : "Open raw";
-  const rows = [
-    ["Created", meta.createdAt],
-    ["Label", meta.label],
-    ["Source", meta.sourceUrl],
-    ["App", meta.appName],
-    ["Viewport", meta.viewport],
-    ["Note", meta.note],
-    ["Content type", meta.contentType],
-    ["Size", `${meta.size} bytes`],
-  ].filter(([, value]) => value);
+  const rows = metadataRows(meta);
 
   return page(`Glassview ${meta.id}`, `
     <main class="viewer">
@@ -42,23 +34,150 @@ export function renderViewer(meta: ScreenshotMetadata): string {
           <p class="eyebrow">Glassview</p>
           <h1>${escapeHtml(meta.label || meta.id)}</h1>
         </div>
-        <a class="button" href="${escapeHtml(assetUrl)}">${buttonLabel}</a>
+        <a class="button" href="${escapeHtml(assetUrl)}">Open raw</a>
       </header>
       <figure>
         <img src="${escapeHtml(assetUrl)}" alt="${escapeHtml(meta.label || "Uploaded screenshot")}" />
       </figure>
-      <dl>
-        ${rows
-          .map(([label, value]) => `
+      ${renderMetadataRows(rows)}
+    </main>
+  `);
+}
+
+function renderPrivateViewer(meta: ScreenshotMetadata): string {
+  const rows = metadataRows(meta);
+  const blobUrl = meta.blobUrl || "";
+  const iv = meta.cipher?.iv || "";
+
+  return page(`Glassview ${meta.id}`, `
+    <main class="viewer">
+      <header>
+        <div>
+          <p class="eyebrow">Glassview</p>
+          <h1>${escapeHtml(meta.label || meta.id)}</h1>
+        </div>
+        <a class="button" data-download hidden>Download</a>
+      </header>
+      <figure
+        data-private-viewer
+        data-id="${escapeHtml(meta.id)}"
+        data-blob-url="${escapeHtml(blobUrl)}"
+        data-iv="${escapeHtml(iv)}"
+        data-content-type="${escapeHtml(meta.contentType)}"
+      >
+        <div class="status" data-status>Decrypting screenshot...</div>
+      </figure>
+      ${renderMetadataRows(rows)}
+    </main>
+    <script>
+      (() => {
+        const root = document.querySelector("[data-private-viewer]");
+        if (!root) return;
+        const status = root.querySelector("[data-status]");
+        const download = document.querySelector("[data-download]");
+        const setStatus = (message) => {
+          if (status) status.textContent = message;
+        };
+        const key = new URLSearchParams(window.location.hash.slice(1)).get("k");
+        if (!key) {
+          setStatus("Missing decrypt key.");
+          return;
+        }
+
+        decryptAndRender().catch(() => {
+          setStatus("Could not decrypt screenshot.");
+        });
+
+        async function decryptAndRender() {
+          if (!window.crypto?.subtle) {
+            setStatus("Web Crypto is unavailable.");
+            return;
+          }
+          const response = await fetch(root.dataset.blobUrl, { cache: "no-store" });
+          if (!response.ok) {
+            setStatus(response.status === 410 ? "Screenshot expired or revoked." : "Screenshot unavailable.");
+            return;
+          }
+          const cryptoKey = await crypto.subtle.importKey(
+            "raw",
+            decodeBase64Url(key),
+            "AES-GCM",
+            false,
+            ["decrypt"],
+          );
+          const plaintext = await crypto.subtle.decrypt(
+            { name: "AES-GCM", iv: decodeBase64Url(root.dataset.iv || "") },
+            cryptoKey,
+            await response.arrayBuffer(),
+          );
+          const blob = new Blob([plaintext], { type: root.dataset.contentType || "image/png" });
+          const objectUrl = URL.createObjectURL(blob);
+          const image = new Image();
+          image.alt = "Uploaded screenshot";
+          image.onload = () => {
+            root.replaceChildren(image);
+            if (download instanceof HTMLAnchorElement) {
+              download.href = objectUrl;
+              download.download =
+                "glassview-" +
+                (root.dataset.id || "screenshot") +
+                "." +
+                extensionFor(root.dataset.contentType || "");
+              download.hidden = false;
+            }
+          };
+          image.onerror = () => {
+            URL.revokeObjectURL(objectUrl);
+            setStatus("Could not render decrypted screenshot.");
+          };
+          image.src = objectUrl;
+        }
+
+        function decodeBase64Url(value) {
+          const normalized = value.replaceAll("-", "+").replaceAll("_", "/");
+          const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, "=");
+          const binary = atob(padded);
+          return Uint8Array.from(binary, (char) => char.charCodeAt(0));
+        }
+
+        function extensionFor(contentType) {
+          if (contentType === "image/jpeg") return "jpg";
+          if (contentType === "image/webp") return "webp";
+          if (contentType === "image/gif") return "gif";
+          if (contentType === "image/svg+xml") return "svg";
+          return "png";
+        }
+      })();
+    </script>
+  `);
+}
+
+function metadataRows(meta: ScreenshotMetadata): string[][] {
+  return [
+    ["Created", meta.createdAt],
+    ["Label", meta.label],
+    ["Source", meta.sourceUrl],
+    ["App", meta.appName],
+    ["Viewport", meta.viewport],
+    ["Note", meta.note],
+    ["Content type", meta.contentType],
+    ["Size", `${meta.size} bytes`],
+  ].filter((row): row is string[] => Boolean(row[1]));
+}
+
+function renderMetadataRows(rows: string[][]): string {
+  return `<dl>
+    ${rows
+      .map(
+        ([label, value]) => `
             <div>
               <dt>${escapeHtml(label || "")}</dt>
               <dd>${escapeHtml(value || "")}</dd>
             </div>
-          `)
-          .join("")}
-      </dl>
-    </main>
-  `);
+          `,
+      )
+      .join("")}
+  </dl>`;
 }
 
 function page(title: string, body: string): string {
@@ -135,6 +254,14 @@ function page(title: string, body: string): string {
       background: #050607;
       overflow: auto;
       border-radius: 8px;
+    }
+    .status {
+      min-height: 320px;
+      display: grid;
+      place-items: center;
+      color: #c8c0b6;
+      padding: 24px;
+      text-align: center;
     }
     img {
       display: block;

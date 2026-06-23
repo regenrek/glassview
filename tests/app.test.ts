@@ -140,6 +140,22 @@ describe("glassview worker", () => {
     expect(html).toContain("Example screenshot");
   });
 
+  it("renders the private viewer with browser-side decrypt logic", async () => {
+    const uploaded = await uploadEncrypted();
+    const response = await handleRequest(new Request(uploaded.viewUrl), env);
+
+    expect(response.status).toBe(200);
+    const html = await response.text();
+    expect(html).toContain("data-private-viewer");
+    expect(html).toContain(`data-blob-url="${uploaded.blobUrl}"`);
+    expect(html).toContain("window.location.hash");
+    expect(html).toContain("crypto.subtle.decrypt");
+    expect(html).toContain("Missing decrypt key.");
+    expect(html).toContain("Could not decrypt screenshot.");
+    expect(html).toContain("data-download hidden");
+    expect(html).not.toContain(`<img src="${uploaded.blobUrl}"`);
+  });
+
   it("returns the raw image with the uploaded content type", async () => {
     const uploaded = (await (await upload()).json()) as UploadResponse;
     expect(uploaded.rawUrl).toBeDefined();
