@@ -9,7 +9,7 @@ The app stores uploaded images in R2, serves a lightweight HTML viewer, and prot
 Prerequisites:
 
 - A Cloudflare account with Workers and R2 enabled.
-- Cloudflare auth available to Alchemy, for example through `npx wrangler login`.
+- Cloudflare credentials available to Alchemy, preferably `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`.
 - Node.js and pnpm.
 
 Deploy from a fresh checkout:

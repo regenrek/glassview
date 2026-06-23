@@ -18,8 +18,7 @@ coverage/
 test-results/
 playwright-report/
 
-# Cloudflare, Alchemy, and local runtime state
-.wrangler/
+# Alchemy and local runtime state
 .mf/
 .alchemy/
 .alchemy-*/

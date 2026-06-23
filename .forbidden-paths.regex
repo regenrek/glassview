@@ -1,7 +1,6 @@
 # Local runtime directories
 (^|/)\\.alchemy/
 (^|/)\\.alchemy-.*/
-(^|/)\\.wrangler/
 (^|/)\\.codex/
 (^|/)\\.claude/
 (^|/)\\.agentrig/
