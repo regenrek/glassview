@@ -1,12 +1,59 @@
+# Environment and local secrets
 .env
 .env.*
 !.env.example
+.dev.vars
+.dev.vars.*
+
+# Dependencies and package-manager state
 node_modules/
+.pnpm-store/
+
+# Build, test, and coverage output
 dist/
-.wrangler/
-.alchemy/
-.alchemy-remote/
-.alchemy-backups/
+build/
 coverage/
+.nyc_output/
+.vitest/
+test-results/
+playwright-report/
+
+# Cloudflare, Alchemy, and local runtime state
+.wrangler/
+.mf/
+.alchemy/
+.alchemy-*/
+.alchemy-backups/
+.miniflare/
+
+# Temporary screenshots and generated proof artifacts
 tmp/
+temp/
+.tmp/
+screenshots/
+captures/
 *.log
+*.tsbuildinfo
+
+# OS and editor noise
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/settings.json
+.vscode/launch.json
+
+# Credentials and keys
+*.pem
+*.key
+*.p12
+*.jks
+*.keystore
+id_rsa
+id_ed25519
+id_ecdsa
+id_dsa
+*.agekey
+secrets.json
+tokens.json
+credentials.json
+service-account*.json
