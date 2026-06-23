@@ -1,5 +1,7 @@
 # Glassview
 
+![Glassview — shareable screenshot links for agent visual proof](public/glassview_banner.webp)
+
 Glassview gives coding agents a comfortable way to turn local screenshots into shareable proof links.
 
 The repo contains two pieces:
